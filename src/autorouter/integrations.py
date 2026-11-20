@@ -6,8 +6,7 @@ from pathlib import Path
 import tomllib
 
 PROJECT = Path(__file__).resolve().parents[2]
-LOCK_FILE = PROJECT / "config/integrations.lock.json"
-LOCK = json.loads(LOCK_FILE.read_text()) if LOCK_FILE.is_file() else {"autorouter_plugins": {}}
+LOCK = json.loads((Path(__file__).with_name("assets") / "integrations.lock.json").read_text())
 PLUGIN_VERSIONS = {name: info["version"] for name, info in LOCK["autorouter_plugins"].items()}
 ECC_SKILLS = frozenset((
     "context-budget", "iterative-retrieval", "rust-patterns", "rust-testing",

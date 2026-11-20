@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-LOCK = json.loads((ROOT / "config/integrations.lock.json").read_text())
+LOCK = json.loads((ROOT / "src/autorouter/assets/integrations.lock.json").read_text())
 
 
 def run(*args):

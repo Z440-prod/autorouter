@@ -12,7 +12,7 @@ if platform.system() != "Linux" or platform.machine() not in ("x86_64", "amd64")
         "This locked distribution targets Linux x86_64; review the appropriate official release for this architecture"
     )
 root = Path(__file__).resolve().parents[1]
-lock = json.loads((root / "config/integrations.lock.json").read_text())
+lock = json.loads((root / "src/autorouter/assets/integrations.lock.json").read_text())
 release = lock["codex_distribution"]
 blob = urllib.request.urlopen(release["url"], timeout=120).read()
 if hashlib.sha256(blob).hexdigest() != release["sha256"]:
