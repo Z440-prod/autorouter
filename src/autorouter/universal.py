@@ -85,6 +85,14 @@ class Workspace:
         self.memory = None
         self.store = None
 
+    def close(self):
+        if self.memory is not None:
+            self.memory.db.close()
+            self.memory = None
+        if self.store is not None:
+            self.store.db.close()
+            self.store = None
+
     def enabled(self, data):
         allowed = {"diagnostics"}
         if data and self.capabilities["mcp"] in {"native", "adapter", "mcp"}:
@@ -130,7 +138,10 @@ class Workspace:
             vault = Path(config["vault"])
             if vault.resolve(strict=True) != vault:
                 raise ValueError("Vault identity changed")
-            if self.memory is None or self.memory.root != vault:
+            if self.memory is not None and self.memory.root != vault:
+                self.memory.db.close()
+                self.memory = None
+            if self.memory is None:
                 idx = hashlib.sha256(os.fsencode(vault)).hexdigest()
                 self.memory = Memory(vault, directory / (idx + ".sqlite"), config.get("embeddings"))
             if name == "memory_status":

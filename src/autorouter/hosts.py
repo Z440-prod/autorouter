@@ -1,5 +1,6 @@
 """Native registration, scoped workspace administration and stdio service."""
 import argparse
+from contextlib import closing
 import json
 import os
 from pathlib import Path
@@ -165,7 +166,8 @@ def main(argv=None):
         elif args.action == "workspace":
             configure(args, root)
         elif args.action == "serve":
-            serve(Workspace(root, args.target), sys.stdin.buffer, sys.stdout)
+            with closing(Workspace(root, args.target)) as workspace:
+                serve(workspace, sys.stdin.buffer, sys.stdout)
         elif args.action == "session-context":
             if profile(root, args.target)[1]:
                 print("AutoRouter project tools are available for this workspace.")

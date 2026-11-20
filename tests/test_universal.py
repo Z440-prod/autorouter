@@ -24,9 +24,14 @@ class UniversalTests(unittest.TestCase):
         self.enterContext(patch.dict(os.environ, {"AUTOROUTER_HOME": str(self.root / "state")}))
         self.enterContext(patch.object(Path, "cwd", return_value=self.project))
 
+    def workspace(self, host):
+        workspace = Workspace(self.project, host)
+        self.addCleanup(workspace.close)
+        return workspace
+
     def test_scoped_memory_and_permission_revocation(self):
-        a = Workspace(self.project, "claude-code")
-        b = Workspace(self.project, "gemini-cli")
+        a = self.workspace("claude-code")
+        b = self.workspace("gemini-cli")
         self.assertEqual(a.dispatch("diagnostics", {})["tools"], ["diagnostics"])
         hosts.main(["workspace", "--target", a.host, "--vault", str(self.vault), "--write"])
         hosts.main(["workspace", "--target", b.host])
@@ -73,7 +78,7 @@ class UniversalTests(unittest.TestCase):
                 stream = io.BytesIO(b"".join(json.dumps({"jsonrpc": "2.0", **m}).encode() + b"\n"
                                             for m in messages))
                 out = io.StringIO()
-                serve(Workspace(self.project, host), stream, out)
+                serve(self.workspace(host), stream, out)
                 hello, listing, call, error = map(json.loads, out.getvalue().splitlines())
                 self.assertEqual(hello["result"]["protocolVersion"], "2025-06-18")
                 self.assertIn("knowledge_search", {t["name"] for t in listing["result"]["tools"]})
