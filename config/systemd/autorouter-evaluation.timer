@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily bounded AutoRouter model evaluation
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=25m
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+{
+  "name": "autorouter-local",
+  "owner": {
+    "name": "AutoRouter contributors"
+  },
+  "plugins": [
+    {
+      "name": "autorouter",
+      "source": "./plugins/autorouter",
+      "description": "Scoped coding-agent tools"
+    }
+  ]
+}

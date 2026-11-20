@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools==82.0.1"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "autorouter-engine"
+version = "0.2.0"
+description = "Native coding-agent orchestration and scoped project memory"
+requires-python = ">=3.11"
+readme = "README.md"
+license = "Apache-2.0"
+dependencies = []
+[project.scripts]
+autorouter = "autorouter.native:main"
+autorouter-admin = "autorouter.cli:main"
+autorouter-memory-mcp = "autorouter.mcp:main"
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+autorouter = ["assets/*", "assets/**/*", "assets/**/.*/*.json", "assets/**/.mcp.json", "assets/**/*.md"]

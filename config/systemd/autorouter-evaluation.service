@@ -1,0 +1,7 @@
+[Unit]
+Description=Run one bounded AutoRouter model capability probe
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/autorouter models evaluate
+TimeoutStartSec=3min

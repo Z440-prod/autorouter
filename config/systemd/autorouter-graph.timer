@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh AutoRouter Graphify indexes after source changes
+
+[Timer]
+OnStartupSec=90s
+OnUnitInactiveSec=2min
+AccuracySec=15s
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh AutoRouter Graphify indexes
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/autorouter graph refresh
+Environment=PATH=%h/.local/bin:/usr/bin:/bin
+Nice=10
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+RestrictAddressFamilies=AF_UNIX

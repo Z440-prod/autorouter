@@ -1,0 +1,8 @@
+[Unit]
+Description=Check and stage a verified upstream AutoRouter update
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/autorouter update automatic
+Nice=10
+TimeoutStartSec=4h

@@ -1,0 +1,15 @@
+{
+  "name": "autorouter",
+  "version": "0.2.0",
+  "description": "Project-scoped AutoRouter tools",
+  "mcpServers": {
+    "autorouter": {
+      "command": "autorouter",
+      "args": [
+        "serve",
+        "--target",
+        "gemini-cli"
+      ]
+    }
+  }
+}

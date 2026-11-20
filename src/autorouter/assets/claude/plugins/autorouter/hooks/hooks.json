@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "autorouter session-context --target claude-code",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+AutoRouter
+Copyright 2026 AutoRouter contributors
+
+The optional native Codex patch modifies OpenAI Codex under Apache-2.0.
+The retained upstream notices are in adapters/codex/NOTICE.

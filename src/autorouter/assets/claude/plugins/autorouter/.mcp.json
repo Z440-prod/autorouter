@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "autorouter": {
+      "command": "autorouter",
+      "args": [
+        "serve",
+        "--target",
+        "claude-code"
+      ]
+    }
+  }
+}

@@ -1,0 +1,3 @@
+# Cline
+
+Run `autorouter install --target cline` in the project with the Cline CLI on PATH. The CLI lists AutoRouter tools from the approved project when the process starts in its working directory. For desktop editions use Cline's MCP settings and register local stdio with command `autorouter`, arguments `serve --target cline`, and an empty tool auto-approval list. Use an absolute executable path if the GUI has a different PATH. If the desktop client starts MCP outside the approved root, only diagnostics is available. Desktop editions are pending live testing. [Cline MCP docs](https://docs.cline.bot/mcp/mcp-overview)

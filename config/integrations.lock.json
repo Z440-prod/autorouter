@@ -1,0 +1,53 @@
+{
+  "codex": "0.169.0",
+  "node": {
+    "directory": "node-v24.22.3-linux-x64",
+    "file": "node-v24.22.3-linux-x64.tar.xz",
+    "url": "https://nodejs.org/dist/v24.22.3/node-v24.22.3-linux-x64.tar.xz",
+    "sha256": "4f2b175a6d53a5c617a80dba2676238a0688cef28c6da4eba35c7d844e66fcfb"
+  },
+  "plugins": [
+    {
+      "repo": "obsidianmd/obsidian-skills",
+      "id": "obsidian@obsidian-skills",
+      "commit": "caf3e98cd22d810db164f26c9a442f0a280daa43"
+    },
+    {
+      "repo": "DietrichGebert/ponytail",
+      "id": "ponytail@ponytail",
+      "commit": "96608e078b2d5ea607c5c3b8b5a54d1c1fba6846"
+    },
+    {
+      "repo": "morluto/rea",
+      "id": "rea@rea",
+      "commit": "637e4cb60c99b1b17026855297cb03e299c3ba89"
+    }
+  ],
+  "cli_anything_commit": "34f519533bc175d2fe287ab8316b0dd99bb9cc43",
+  "cli_hub": "0.4.1",
+  "codex_distribution": {
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.169.0/codex-x86_64-unknown-linux-musl.tar.gz",
+    "sha256": "9af4d751fce183faedea629437d5252dbf458eeb04130cf4f97be844621ea985"
+  },
+  "autorouter_plugins": {
+    "agent-skills": {
+      "repo": "addyosmani/agent-skills",
+      "version": "0.6.17",
+      "commit": "8c99fa36d90068c82d547f7c12a9d67a3e95f4ee"
+    },
+    "ecc": {
+      "repo": "affaan-m/ECC",
+      "version": "2.2.3",
+      "commit": "4adeee6732a12d1540f49a4d50a38ce8c97f9a53"
+    }
+  },
+  "graphify": {
+    "package": "graphifyy",
+    "version": "0.9.113"
+  },
+  "agentshield": {
+    "package": "ecc-agentshield",
+    "version": "1.6.0",
+    "integrity": "sha512-lpeHG96DtEn7ofq7Iiyvq29piQOwParaiZOdDB206i4ZeCL4yjwT6xN5BSGI4yhCEAN0eO0f9F9hxHLBuRqf/g=="
+  }
+}
