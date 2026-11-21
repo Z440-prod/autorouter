@@ -5,7 +5,7 @@
 AutoRouter gives coding agents a shared way to retrieve project decisions, inspect code relationships, and resume work from explicit checkpoints. Each agent keeps its interface, account, model controls, and approvals.
 
 - Search approved Obsidian Markdown with SQLite FTS5, or query Graphify for source-backed code relationships.
-- Share task snapshots across authorized agents using local MCP.
+- Share task snapshots across authorized agents using local MCP and inspect progress with [AutoRouter Pulse](docs/performance.md).
 - Discover approved skills and get routing recommendations using each host’s own catalog.
 - Use the optional native Codex build for Luna-first classification, reasoning selection, and real execution-stage model changes.
 
