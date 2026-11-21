@@ -1,5 +1,5 @@
 $ autorouter progress --task demo --detail
-◈ Pulse [█████░░░░░] ~50% (50% left) | executing | verification | demo-model …
+◈ Pulse [█████░░░░░] ~50% (50% left) | verification | demo-model | standard
 Stage ETA calculating
   completed  Inspect
   completed  Implement

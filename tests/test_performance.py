@@ -40,6 +40,7 @@ class PerformanceTests(unittest.TestCase):
         self.assertEqual(result["eta_state"], "estimated")
         self.assertGreaterEqual(result["eta"]["median_seconds"], 21)
         self.assertLessEqual(len(pulse.format_snapshot(result, 20)), 20)
+        self.assertIn("standard", pulse.format_snapshot(dict(result, scope_changed=False), 78))
         for status in ("blocked", "paused", "cancelled"):
             self.assertIsNone(pulse.snapshot(dict(task, status=status), [20] * 5)["eta"])
         self.assertEqual(pulse.snapshot(task, [20] * 4)["eta_state"], "calculating")

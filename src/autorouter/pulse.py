@@ -82,7 +82,9 @@ def format_snapshot(state, width=78):
     pct = state["percentage"]
     bar = "[··········]" if pct is None else "[" + "█"*(pct//10) + "░"*(10-pct//10) + "]"
     progress = "indeterminate" if pct is None else f"~{pct}% ({100-pct}% left)"
-    label = f"◈ Pulse {bar} {progress} | {state['status']}"
+    label = f"◈ Pulse {bar} {progress}"
+    if state["status"] not in ("executing", "running", "continue") or not state.get("stage"):
+        label += f" | {state['status']}"
     if state["scope_changed"]:
         label += " · scope updated"
     details = " | ".join(x for x in (state.get("stage"), state.get("model"), state.get("speed")) if x)

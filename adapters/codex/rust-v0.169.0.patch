@@ -1783,10 +1783,10 @@ index c026595f61..4fd7648833 100644
              ..StartThreadOptions::new(config.clone())
 diff --git a/codex-rs/core/src/session/autorouter.rs b/codex-rs/core/src/session/autorouter.rs
 new file mode 100644
-index 0000000000..de4cd3b091
+index 0000000000..492eb4484e
 --- /dev/null
 +++ b/codex-rs/core/src/session/autorouter.rs
-@@ -0,0 +1,1214 @@
+@@ -0,0 +1,1215 @@
 +//! Optional Luna routing at completed sampling/tool boundaries; history stays in Codex.
 +use super::*;
 +use crate::client_common::{Prompt, ResponseEvent};
@@ -2339,7 +2339,6 @@ index 0000000000..de4cd3b091
 +    }
 +    let environment = turn.initial_environments.primary()?;
 +    let dynamic_tools = sess.dynamic_tools().await;
-+    let settings = turn.next_step_settings.load_full();
 +    Some(format!(
 +        "{:?}",
 +        (
@@ -2347,8 +2346,6 @@ index 0000000000..de4cd3b091
 +            turn.permission_profile(),
 +            turn.approval_policy(),
 +            turn.granted_permissions(&environment.selection.environment_id),
-+            settings.selected(),
-+            &settings.model_info,
 +            models,
 +            verified,
 +            pinned,
@@ -2360,6 +2357,11 @@ index 0000000000..de4cd3b091
 +            ),
 +        )
 +    ))
++}
++
++fn routing_key(scope: &str, turn: &TurnContext) -> String {
++    let settings = turn.next_step_settings.load_full();
++    format!("{scope} {:?}", (settings.selected(), &settings.model_info))
 +}
 +
 +pub(super) async fn route(
@@ -2412,9 +2414,9 @@ index 0000000000..de4cd3b091
 +    let models = eligible_models(sess, catalog);
 +    let verified = verified_defaults(turn).await;
 +    let mut approved_history = None;
-+    if let Some(scope) =
-+        routing_scope(sess, turn, &models, &verified, (model_pin, effort_pin)).await
-+    {
++    let scope = routing_scope(sess, turn, &models, &verified, (model_pin, effort_pin)).await;
++    if let Some(scope) = &scope {
++        let key = routing_key(scope, turn);
 +        let history = sess.clone_history().await;
 +        let len = history.raw_items().len();
 +        let version = history.history_version();
@@ -2423,12 +2425,12 @@ index 0000000000..de4cd3b091
 +        let mut previous = state.approved_scope.lock().expect("routing scope");
 +        if reusable_scope(
 +            previous.as_ref(),
-+            &scope,
++            &key,
 +            version,
 +            len,
 +            repeated_discovery(&tail),
 +        ) {
-+            *previous = Some((scope, version, len));
++            *previous = Some((key, version, len));
 +            tracing::info!(target: "autorouter", thread = %sess.thread_id(), turn = %turn.sub_id,
 +                "routing decision reused");
 +            return Ok(());
@@ -2576,11 +2578,10 @@ index 0000000000..de4cd3b091
 +                .push((destination, decision.stage.clone()));
 +
 +            let selected = turn.next_step_settings.load_full();
-+            if let (Some((version, len)), Some(scope)) = (
-+                approved_history,
-+                routing_scope(sess, turn, &models, &verified, (model_pin, effort_pin)).await,
-+            ) {
-+                *state.approved_scope.lock().expect("routing scope") = Some((scope, version, len));
++            if let (Some((version, len)), Some(scope)) = (approved_history, scope) {
++                // Cache the inputs Luna saw even if permissions or tools change while it runs.
++                let key = routing_key(&scope, turn);
++                *state.approved_scope.lock().expect("routing scope") = Some((key, version, len));
 +            }
 +            let effective = selected
 +                .effective_reasoning_effort()
@@ -4209,7 +4210,7 @@ index 1ae43235f0..d3955973d0 100644
              status_line_branch_cwd: None,
              status_line_branch_pending: false,
 diff --git a/codex-rs/tui/src/chatwidget/status_surfaces.rs b/codex-rs/tui/src/chatwidget/status_surfaces.rs
-index c7109c6e3d..e7e099ee8f 100644
+index c7109c6e3d..4501da01ce 100644
 --- a/codex-rs/tui/src/chatwidget/status_surfaces.rs
 +++ b/codex-rs/tui/src/chatwidget/status_surfaces.rs
 @@ -202,6 +202,22 @@ impl ChatWidget {
@@ -4235,7 +4236,7 @@ index c7109c6e3d..e7e099ee8f 100644
          let enabled = !selections.status_line_items.is_empty();
          self.bottom_pane.set_status_line_enabled(enabled);
          if !enabled {
-@@ -1293,3 +1309,41 @@ where
+@@ -1293,3 +1309,45 @@ where
      }
      (items, invalid)
  }
@@ -4261,10 +4262,12 @@ index c7109c6e3d..e7e099ee8f 100644
 +        _ => "[··········]".into(),
 +    };
 +    let replan = if changed { " · plan updated" } else { "" };
-+    format!(
-+        "◈ Pulse {progress} | {stage} | {model} | {}{replan}",
-+        speed.unwrap_or("standard")
-+    )
++    let speed = match speed {
++        None | Some("default") => "standard",
++        Some("priority") => "fast",
++        Some(speed) => speed,
++    };
++    format!("◈ Pulse {progress} | {stage} | {model} | {speed}{replan}")
 +}
 +
 +#[cfg(test)]
@@ -4273,6 +4276,8 @@ index c7109c6e3d..e7e099ee8f 100644
 +    let label = pulse_label("verification", "example-model", None, Some((2, 4)), true);
 +    assert!(label.contains("~50% (50% left)"));
 +    assert!(label.contains("plan updated"));
++    assert!(pulse_label("test", "model", Some("priority"), None, false).ends_with(" | fast"));
++    assert!(pulse_label("test", "model", Some("default"), None, false).ends_with(" | standard"));
 +    assert!(
 +        !pulse_label("verification", "example-model", None, Some((4, 4)), false).contains("100%")
 +    );
