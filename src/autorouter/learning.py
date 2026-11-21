@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+from statistics import median
 import subprocess
 import time
 from uuid import UUID
@@ -68,6 +69,13 @@ def turn_metrics(session, turn):
             int(row["classification_ms"]) for row in routes
             if row.get("classification_ms", "").isdigit()
         ]
+        latencies = sorted(metrics["classification_ms"])
+        metrics["routing_performance"] = {
+            "applied_classifications": len(latencies),
+            "reused_decisions": sum(row["event"] == "route_reused" for row in routes),
+            "classification_p50_ms": median(latencies) if latencies else None,
+            "classification_p95_ms": latencies[(95 * len(latencies) + 99) // 100 - 1] if latencies else None,
+        }
         if samples:
             metrics["models"] = [[row["model"], row.get("effort")] for row in samples]
             metrics["model_source"] = "native-sampling-log"

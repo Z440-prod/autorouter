@@ -72,6 +72,7 @@ TOOLS = {t["name"]: t for t in (
     tool("graph_query", "Look up Graphify code relationships with source references.", query=240),
     tool("skill_list", "Discover approved skills for this workspace."),
     tool("skill_read", "Read one approved skill by name.", name=100),
+    tool("progress", "Inspect the local task checkpoint and progress estimate.", task=80),
     tool("checkpoint_get", "Retrieve a task snapshot.", task=80),
     tool("checkpoint_save", "Persist a task snapshot and verification evidence.", task=80, stage=20, summary=2000),
 )}
@@ -100,7 +101,7 @@ class Workspace:
             if data.get("vault"):
                 allowed.update(("knowledge_search", "memory_status"))
             if self.capabilities["checkpoints"] == "mcp":
-                allowed.add("checkpoint_get")
+                allowed.update(("checkpoint_get", "progress"))
                 if self.host in data.get("writers", []):
                     allowed.add("checkpoint_save")
         return allowed
@@ -147,15 +148,19 @@ class Workspace:
             if name == "memory_status":
                 status = self.memory.status()
                 return {key: status[key] for key in ("notes", "integrity", "semantic")}
-            self.memory.reindex()
+            self.memory.ensure_current()
             return [{"path": row["path"], "excerpt": row["excerpt"][:600]}
                     for row in self.memory.search(args["query"], limit=4)]
         if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", args["task"]):
             raise ValueError("Invalid task identifier")
         if self.store is None:
             self.store = TaskStore(directory / "tasks.sqlite")
-        if name == "checkpoint_get":
-            return self.store.get(args["task"])
+        if name in {"checkpoint_get", "progress"}:
+            task = self.store.get(args["task"])
+            if name == "progress":
+                from .pulse import comparable_stage_times, snapshot
+                return snapshot(task, comparable_stage_times(self.store.db, task))
+            return task
         if args["stage"] not in STAGES or SECRET.search(args["summary"]):
             raise ValueError("Invalid stage or credential-like summary")
         snapshot = {"id": args["task"], "stage": args["stage"], "summary": args["summary"]}

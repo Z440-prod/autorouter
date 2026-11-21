@@ -236,6 +236,12 @@ def control(args, binary):
 
 def main():
     args = sys.argv[1:]
+    if args[:1] == ["progress"]:
+        from .pulse import main as progress
+        return progress(args[1:])
+    if args[:1] == ["speed"]:
+        from .speed import main as speed
+        return speed(args[1:])
     if args[:1] and args[0] in {"install", "uninstall", "hosts", "workspace", "serve", "session-context"}:
         from .hosts import main as host_main
         return host_main(args)

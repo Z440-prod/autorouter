@@ -225,7 +225,16 @@ class Tests(unittest.TestCase):
         self.assertEqual(s["status"], "complete")
         calls = [c for c in Mock.calls if c[0] == "executor"]
         self.assertEqual(len(calls), 4)
-        self.assertEqual(len(calls[-1][3]["checkpoints"]), 3)
+        handoff = calls[-1][3]
+        self.assertNotIn("checkpoints", handoff)
+        self.assertEqual(handoff["original_request"], "fix")
+        active = handoff["active_task_state"]
+        self.assertEqual(active["checkpoint_history"], {"task": s["id"], "entries": 3})
+        self.assertEqual(active["latest_summary"], "test stage")
+        self.assertEqual(active["stage"], "verification")
+        self.assertEqual(active["completed_operations"], ["one operation"])
+        self.assertEqual(active["pending_operations"], [])
+        self.assertEqual(len(Store(self.root / "tasks.sqlite").get(s["id"])["checkpoints"]), 4)
         self.assertEqual(
             Store(self.root / "tasks.sqlite").get(s["id"])["status"], "complete"
         )

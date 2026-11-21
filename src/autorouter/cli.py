@@ -434,7 +434,7 @@ def main():
                     memory.reindex()
                     time.sleep(2)
             elif a.operation == "search":
-                memory.reindex()
+                memory.ensure_current()
                 output(memory.search(a.query))
             elif a.operation in ("status", "doctor"):
                 output(memory.status())

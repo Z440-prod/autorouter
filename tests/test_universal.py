@@ -45,6 +45,10 @@ class UniversalTests(unittest.TestCase):
         checkpoint = {"task": "test", "stage": "analysis", "summary": "Controller verified"}
         a.dispatch("checkpoint_save", checkpoint)
         self.assertEqual(b.dispatch("checkpoint_get", {"task": "test"})["summary"], checkpoint["summary"])
+        with patch("socket.socket", side_effect=AssertionError("Pulse must never call a provider")):
+            status = b.dispatch("progress", {"task": "test"})
+        self.assertEqual(status["stage"], "analysis")
+        self.assertIsNone(status["percentage"])
         with self.assertRaises(ValueError):
             b.dispatch("checkpoint_save", checkpoint)
         hosts.main(["workspace", "--target", a.host, "--revoke"])

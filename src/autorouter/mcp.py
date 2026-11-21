@@ -74,7 +74,7 @@ def knowledge_search(memory, state, query, project="autorouter"):
         raise ValueError("Expected a focused query of 1 to 240 characters")
     if not isinstance(project, str) or project not in projects:
         raise ValueError("Choose the autorouter or native graph")
-    memory.reindex()
+    memory.ensure_current()
     notes = memory.search(query, limit=3, folder="Architecture")
     return {
         "project": project,
@@ -121,7 +121,7 @@ def main():
                         isinstance(query, str) and len(query) <= 500 for query in queries
                     ) or not isinstance(folder, str):
                         raise ValueError("Expected one to ten search queries of at most 500 characters and an optional folder")
-                    memory.reindex()
+                    memory.ensure_current()
                     records = [
                         {"query": query, "matches": memory.search(query, folder=folder)}
                         for query in dict.fromkeys(queries)

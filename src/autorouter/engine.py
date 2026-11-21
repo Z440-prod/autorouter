@@ -136,6 +136,24 @@ class Store(TaskStore):
         ]
 
 
+def active_task_state(task):
+    checkpoints = task.get("checkpoints", [])
+    latest = checkpoints[-1] if checkpoints else {}
+    def union(field):
+        return list(dict.fromkeys(item for cp in checkpoints for item in cp.get(field, [])))
+    return {
+        "status": task["status"],
+        "stage": latest.get("next_stage"),
+        "latest_summary": latest.get("summary"),
+        "pending_operations": latest.get("pending_operations", []),
+        "completed_operations": union("completed_operations"),
+        "verified_findings": union("verified_findings"),
+        "changed_files": union("changed_files"),
+        "pending_approval": task.get("pending_approval"),
+        "checkpoint_history": {"task": task["id"], "entries": len(checkpoints)},
+    }
+
+
 def git_state(cwd):
     try:
         return subprocess.check_output(
@@ -289,11 +307,11 @@ class Engine:
                 for n in range(max_stages):
                     if len(s["history"]) >= self.config.get("max_handoffs", 16):
                         raise RuntimeError("Handoff budget reached; inspect task")
-                    self.memory.reindex()
+                    self.memory.ensure_current()
                     mem = self.memory.search(s["request"])
                     handoff = {
                         "original_request": s["request"],
-                        "checkpoints": s["checkpoints"],
+                        "active_task_state": active_task_state(s),
                         "git": git_state(s["cwd"]),
                         "memory": mem,
                         "available_models": [x["id"] for x in models],
@@ -301,6 +319,7 @@ class Engine:
                         "previous_failures": s["failures"],
                         "image_paths": s.get("images", []),
                         "historical_model_outcomes": self.store.model_history(),
+                        "permissions": {"sandbox": "workspace-write", "approval": "on-request"},
                         "configured_pricing": self.config.get("model_pricing", {}),
                         "pricing_note": "Absent prices mean unknown, not free. Subscription use is not API dollar billing.",
                         "recovery_required": s.get("recovery_required", False),
@@ -378,6 +397,7 @@ class Engine:
                         "tier": rt,
                         "adjusted": adjusted,
                         "decision": decision,
+                        "started_at": time.time(),
                         "classification_ms": round(
                             (time.perf_counter() - start) * 1000, 2
                         ),
@@ -408,6 +428,7 @@ class Engine:
                         handoff["tool_policy"] = (
                             "Prefer an existing reliable installed CLI. Inspect CLI-Hub search/info only if a capability is missing. Review provenance, dependencies and permissions before any harness installation. Do not generate a wrapper for trivial shell operations."
                         )
+                    execution_started = time.perf_counter()
                     try:
                         result = validate(
                             json.loads(
@@ -447,6 +468,7 @@ class Engine:
                         set(s.get("changed_files", []) + result["changed_files"])
                     )
                     s["pending_operations"] = result["pending_operations"]
+                    route["execution_ms"] = round((time.perf_counter() - execution_started) * 1000, 2)
                     s["checkpoints"].append(result)
                     s["status"] = result["status"]
                     s["git_after"] = git_state(s["cwd"])

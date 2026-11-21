@@ -11,6 +11,7 @@ from .integrations import codex_home
 
 MARKERS = {
     "routing applied at tool boundary": "route",
+    "routing decision reused": "route_reused",
     "execution request ": "sample",
     "execution response completed ": "completed",
     "classified independent child task": "child",

@@ -1,6 +1,8 @@
 """Bounded retrieval from Graphify's local, rebuildable project indexes."""
 
+from collections import defaultdict
 from functools import lru_cache
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -35,7 +37,7 @@ def graph_identity(directory):
         (receipt.get("graph_size"), receipt.get("graph_mtime_ns")) != (stat.st_size, stat.st_mtime_ns)
     ):
         raise ValueError("Graph differs from its published build receipt")
-    return stat.st_ino, stat.st_mtime_ns, manifest.st_mtime_ns
+    return tuple((s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns) for s in (stat, manifest))
 
 
 def read_json(path, limit):
@@ -47,12 +49,37 @@ def read_json(path, limit):
 
 
 @lru_cache(maxsize=2)
-def load_graph(directory, identity):
+def graph_index(directory, identity):
     graph = read_json(directory / "graph.json", GRAPH_LIMIT)
     manifest = read_json(directory / "manifest.json", MANIFEST_LIMIT)
     if not isinstance(graph.get("nodes"), list) or not isinstance(graph.get("links"), list):
         raise ValueError("Invalid Graphify graph")
-    return graph, manifest
+    nodes = {node["id"]: node for node in graph["nodes"]}
+    terms = defaultdict(list)
+    edges = defaultdict(list)
+    for identifier, node in nodes.items():
+        for term in set(re.findall(r"[a-z0-9]+", node["label"].lower())):
+            terms[term].append(identifier)
+    for index, edge in enumerate(graph["links"]):
+        edges[edge["source"]].append(index)
+        edges[edge["target"]].append(index)
+    return nodes, terms, edges, graph["links"], manifest
+
+
+@lru_cache(maxsize=2048)
+def matches_source(path, stamp, digest):
+    # Graphify's ast_hash and semantic_hash are MD5 content checks, not trust signatures.
+    algorithm = "md5" if len(digest) == 32 else "sha256"
+    if stamp[2] > 8 * 1024**2:
+        return False
+    with path.open("rb") as file:
+        actual = hashlib.file_digest(file, lambda: hashlib.new(algorithm, usedforsecurity=False)).hexdigest()
+    return actual == digest and source_stamp(path.stat()) == stamp
+
+
+def source_stamp(info):
+    return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
 
 
 def status(root, directory):
@@ -110,20 +137,20 @@ def query(root, directory, topic):
         return {**health, "relationships": []}
     try:
         identity = graph_identity(directory)
-        graph, manifest = load_graph(directory, identity)
+        nodes, symbols, adjacency, edges, manifest = graph_index(directory, identity)
         if identity != graph_identity(directory):
             return {"status": "updating", "relationships": []}
         terms = set(re.findall(r"[a-z0-9]+", topic.lower()))
         if not terms:
             return {**health, "relationships": []}
-        nodes = {node["id"]: node for node in graph["nodes"]}
-        scores = {}
-        for identifier, node in nodes.items():
-            label = node["label"].lower()
-            matches = terms.intersection(re.findall(r"[a-z0-9]+", label))
-            if matches:
-                scores[identifier] = (label.rstrip("()") == topic.lower(), len(matches))
-        closest = set(sorted(scores, key=scores.get, reverse=True)[:10])
+        matches = defaultdict(int)
+        for term in terms:
+            for identifier in symbols.get(term, ()):
+                matches[identifier] += 1
+        scores = {identifier: (nodes[identifier]["label"].lower().rstrip("()") == topic.lower(), count)
+                  for identifier, count in matches.items()}
+        closest = sorted(scores, key=lambda i: (scores[i], str(i)), reverse=True)[:10]
+        candidates = sorted({index for i in closest for index in adjacency.get(i, ())})
         references = {}
 
         def manifest_entry(name):
@@ -140,15 +167,17 @@ def query(root, directory, topic):
                     and path.resolve().is_relative_to(root)
                     and path.is_file() and path.stat().st_mtime == entry.get("mtime")
                 )
+                digest = entry.get("sha256") or entry.get("ast_hash") or entry.get("semantic_hash")
+                if references[name] and digest:
+                    references[name] = matches_source(path, source_stamp(path.stat()), digest)
             if references[name]:
                 return {"path": name, "location": row.get("source_location")}
 
         relationships = []
         stale = False
-        for edge in graph["links"]:
+        for index in candidates:
+            edge = edges[index]
             start, end = edge["source"], edge["target"]
-            if start not in closest and end not in closest:
-                continue
             if start not in nodes or end not in nodes:
                 continue
             origin = source(edge)
