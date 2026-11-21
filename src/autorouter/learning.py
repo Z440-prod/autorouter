@@ -30,7 +30,7 @@ def turn_metrics(session, turn):
     if source.is_symlink() or not source.resolve().is_relative_to(root):
         raise ValueError("Invalid native rollout path")
     metrics = {"models": [], "model_source": "initial-settings", "tools": [],
-               "skills": [], "sampling_calls": 0, "usage": {}}
+               "skills": [], "sampling_calls": 0, "tool_calls": 0, "usage": {}}
     elapsed = None
     active = False
     with source.open() as events:
@@ -48,6 +48,8 @@ def turn_metrics(session, turn):
                 metrics["usage"] = data.get("turn_token_usage", {})
             if kind == "event_msg" and data.get("turn_id") == turn and event == "task_complete":
                 elapsed = data.get("duration_ms")
+                metrics["time_to_first_token_ms"] = data.get("time_to_first_token_ms")
+                metrics["outcome"] = "error" if data.get("error") else "completed"
             if active and kind == "response_item":
                 if event == "configuration_update":
                     config = data.get("update", data)
@@ -55,6 +57,7 @@ def turn_metrics(session, turn):
                     if isinstance(model, str):
                         metrics["models"].append([model, config.get("reasoning_effort")])
                 if event in ("function_call", "custom_tool_call") and isinstance(data.get("name"), str):
+                    metrics["tool_calls"] += 1
                     tools = metrics["tools"]
                     if len(tools) < 24 and data["name"] not in tools:
                         tools.append(data["name"][:80])

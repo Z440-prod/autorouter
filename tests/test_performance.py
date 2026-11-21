@@ -7,7 +7,8 @@ import time
 import unittest
 from unittest.mock import patch
 
-from autorouter import pulse, speed
+from autorouter import learning, pulse, speed
+from autorouter.telemetry import fields_from
 from autorouter.memory import Memory
 from autorouter.state import TaskStore
 
@@ -60,6 +61,37 @@ class PerformanceTests(unittest.TestCase):
         self.assertEqual(speed.recommend(dict(forecast, minimum_gain=0.4))["tier"], "standard")
         self.assertEqual(speed.recommend(dict(forecast, minimum_gain=0.4, previous="fast"))["tier"], "fast")
         self.assertEqual(speed.recommend(dict(forecast, manual="standard"))["reason"], "manual")
+
+    def test_native_usage_reports_recorded_timing_and_routing_reuse(self):
+        root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        session = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+        turn = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+        directory = root / "sessions/2026/11/20"
+        directory.mkdir(parents=True)
+        rows = [
+            ("turn_context", {"turn_id": turn, "model": "fixture", "effort": "low"}),
+            ("response_item", {"type": "function_call", "name": "read_file"}),
+            ("token_usage_record", {"turn_id": turn, "turn_token_usage": {"cached_input_tokens": 900}}),
+            ("event_msg", {"type": "task_complete", "turn_id": turn, "duration_ms": 3800,
+                           "time_to_first_token_ms": 920}),
+        ]
+        (directory / f"rollout-fixture-{session}.jsonl").write_text(
+            "".join(json.dumps({"type": kind, "payload": payload}) + "\n" for kind, payload in rows)
+        )
+        routes = [fields_from(f"routing decision reused thread={session} turn={turn}"),
+                  fields_from(f"routing applied at tool boundary turn={turn} classification_ms=1500")]
+        with patch("autorouter.learning.codex_home", return_value=root), patch(
+            "autorouter.learning.routing_events", return_value=routes
+        ):
+            metrics = learning.turn_metrics(session, turn)
+        self.assertEqual(metrics["time_to_first_token_ms"], 920)
+        self.assertEqual(metrics["outcome"], "completed")
+        self.assertEqual(metrics["tool_calls"], 1)
+        self.assertEqual(metrics["usage"]["cached_input_tokens"], 900)
+        self.assertEqual(metrics["routing_performance"], {
+            "applied_classifications": 1, "reused_decisions": 1,
+            "classification_p50_ms": 1500, "classification_p95_ms": 1500,
+        })
 
     def test_memory_readers_use_committed_snapshot_during_index_write(self):
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))

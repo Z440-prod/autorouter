@@ -27,7 +27,7 @@ def request(proc, ident, method, **params):
 def summary(values):
     values.sort()
     return {"median_ms": round(statistics.median(values), 2),
-            "p95_ms": round(values[min(len(values)-1, int(len(values)*.95))], 2)}
+            "p95_ms": round(values[(95 * len(values) + 99) // 100 - 1], 2)}
 
 
 with tempfile.TemporaryDirectory() as tmp:

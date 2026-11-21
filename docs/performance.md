@@ -14,7 +14,7 @@ The native footer follows the existing plan, where available, and shows the curr
 
 [Example terminal output](assets/pulse-demo.txt)
 
-Use `autorouter routing usage SESSION_ID TURN_ID` on a completed native turn to inspect elapsed time, reported token usage, successful Luna classification latency, and observed reuse counts. The report uses bounded local traces and rollout records.
+Use `autorouter routing usage SESSION_ID TURN_ID` on a completed native turn to inspect elapsed time, first-token latency when recorded, tool-call count, reported token usage, successful Luna classification latency, and observed reuse counts. The report uses bounded local traces and rollout records.
 
 ## Adaptive Speed
 
